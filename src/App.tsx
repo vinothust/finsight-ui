@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Clusters from "./pages/Clusters";
+import Accounts from "./pages/Accounts";
+import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,7 +83,15 @@ const AppRoutes = () => {
         path="/clusters"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Clusters />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accounts"
+        element={
+          <ProtectedRoute>
+            <Accounts />
           </ProtectedRoute>
         }
       />
@@ -88,7 +99,7 @@ const AppRoutes = () => {
         path="/projects"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Projects />
           </ProtectedRoute>
         }
       />

@@ -1,73 +1,122 @@
-# Welcome to your Lovable project
+# FinSight Analytics
 
-## Project info
+> Advanced Financial Analytics and Insights Platform
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Overview
 
-## How can I edit this code?
+FinSight is a modern web application built for financial data analysis and visualization. It provides powerful analytics tools, interactive dashboards, and AI-powered insights to help businesses make data-driven financial decisions.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Interactive Dashboards** - Real-time financial data visualization with customizable KPI cards
+- **Advanced Analytics** - Comprehensive data analysis with multiple chart types and metrics
+- **AI Chat Assistant** - Intelligent chatbot for natural language queries and insights
+- **Data Upload & Processing** - Support for importing and processing financial datasets
+- **Dynamic Filtering** - Powerful filter panel for drilling down into specific data segments
+- **Data Grid** - Interactive tables for detailed data exploration
+- **Responsive Design** - Fully responsive UI that works across desktop and mobile devices
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend Framework:** React 18 with TypeScript
+- **Build Tool:** Vite
+- **UI Components:** shadcn/ui + Radix UI
+- **Styling:** Tailwind CSS
+- **Charts:** Recharts
+- **State Management:** React Query (TanStack Query)
+- **Routing:** React Router v6
+- **Form Handling:** React Hook Form with Zod validation
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js (v18 or higher)
+- npm or yarn package manager
 
-Follow these steps:
+### Installation
 
+1. Clone the repository:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone <repository-url>
+cd finsight-ui-new
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+```sh
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development server:
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available Scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run build:dev` - Build for development environment
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint for code quality checks
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/        # Reusable UI components
+│   ├── ui/           # shadcn/ui components
+│   ├── AIChatBot.tsx
+│   ├── DataCharts.tsx
+│   ├── DataGrid.tsx
+│   └── ...
+├── pages/            # Page components
+│   ├── Dashboard.tsx
+│   ├── Analytics.tsx
+│   ├── Login.tsx
+│   └── ...
+├── contexts/         # React contexts
+├── hooks/            # Custom React hooks
+├── lib/              # Utility functions
+├── types/            # TypeScript type definitions
+└── data/             # Mock data and constants
+```
 
-This project is built with:
+## Development
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Code Style
 
-## How can I deploy this project?
+This project uses ESLint for code quality and consistency. Run linting before committing:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sh
+npm run lint
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Building for Production
 
-Yes, you can!
+Create an optimized production build:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sh
+npm run build
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The build output will be in the `dist/` directory.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+Copyright © 2025 FinSight Analytics. All rights reserved.
+
+## Contact
+
+For questions or support, please contact the development team.
+

@@ -9,6 +9,7 @@ import {
   Users,
   Building2,
   FolderKanban,
+  Briefcase,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -42,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const adminItems = [
     { icon: Users, label: 'Users', path: '/users' },
     { icon: Building2, label: 'Clusters', path: '/clusters' },
+    { icon: Briefcase, label: 'Accounts', path: '/accounts' },
     { icon: FolderKanban, label: 'Projects', path: '/projects' },
   ];
 
