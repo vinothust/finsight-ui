@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, Users } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole, ROLE_LABELS } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Logo from '@/components/Logo';
 import { toast } from 'sonner';
 
@@ -16,7 +14,6 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('admin');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,10 +28,12 @@ const Login: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password, role);
+      const success = await login(email, password);
       if (success) {
         toast.success('Welcome to FinSight!');
         navigate('/dashboard');
+      } else {
+        toast.error('Invalid email or password');
       }
     } catch (error) {
       toast.error('Login failed. Please try again.');
@@ -127,25 +126,6 @@ const Login: React.FC = () => {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Login as</Label>
-                  <Select value={role} onValueChange={(value: UserRole) => setRole(value)}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <div className="flex items-center gap-2">
-                            <Users size={16} className="text-muted-foreground" />
-                            {label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <Button

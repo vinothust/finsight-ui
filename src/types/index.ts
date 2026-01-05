@@ -49,6 +49,7 @@ export interface PnLData {
 export interface FilterState {
   clusters: string[];
   accounts: string[];
+  projects: string[];
   analyzeBy: string[];
   years: number[];
   months: string[];

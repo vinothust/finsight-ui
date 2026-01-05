@@ -12,10 +12,11 @@ interface KPICardsProps {
 const KPICards: React.FC<KPICardsProps> = ({ data, filters }) => {
   const metrics = useMemo(() => {
     const filtered = data.filter((row) => {
-      if (filters.clusters.length && !filters.clusters.includes(row.cluster)) return false;
-      if (filters.accounts.length && !filters.accounts.includes(row.account)) return false;
-      if (filters.years.length && !filters.years.includes(row.year)) return false;
-      if (filters.months.length && !filters.months.includes(row.month)) return false;
+      if (filters.clusters?.length && !filters.clusters.includes(row.cluster)) return false;
+      if (filters.accounts?.length && !filters.accounts.includes(row.account)) return false;
+      if (filters.projects?.length && !filters.projects.includes(row.project)) return false;
+      if (filters.years?.length && !filters.years.includes(row.year)) return false;
+      if (filters.months?.length && !filters.months.includes(row.month)) return false;
       return true;
     });
 

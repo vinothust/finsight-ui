@@ -1,7 +1,7 @@
 import React from 'react';
 import { Filter, X } from 'lucide-react';
-import { FilterState, MONTHS, KPI_OPTIONS } from '@/types';
-import { mockClusters, mockAccounts, getYearRange } from '@/data/mockData';
+import { FilterState, KPI_OPTIONS } from '@/types';
+import { FilterOption } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -23,60 +23,56 @@ import { cn } from '@/lib/utils';
 interface FilterPanelProps {
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
+  availableClusters: FilterOption[];
+  availableAccounts: FilterOption[];
+  availableProjects: FilterOption[];
+  availableYears: number[];
+  availableMonths: string[];
 }
 
-const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) => {
-  const years = getYearRange();
-  const clusterNames = mockClusters.map(c => c.name);
-  const accountNames = mockAccounts.map(a => a.name);
+interface MultiSelectDropdownProps {
+  label: string;
+  options: (string | number | FilterOption)[];
+  selected: (string | number)[];
+  onToggle: (value: string | number) => void;
+  onSelectAll?: (values: (string | number)[]) => void;
+  disabled?: boolean;
+}
 
-  const toggleArrayFilter = (
-    key: 'clusters' | 'accounts' | 'analyzeBy' | 'years' | 'months',
-    value: string | number
-  ) => {
-    const currentArray = filters[key] as (string | number)[];
-    const newArray = currentArray.includes(value)
-      ? currentArray.filter((item) => item !== value)
-      : [...currentArray, value];
-    onFilterChange({ ...filters, [key]: newArray });
+const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
+  label,
+  options,
+  selected,
+  onToggle,
+  onSelectAll,
+  disabled = false,
+}) => {
+  const getOptionValue = (opt: string | number | FilterOption) => 
+    (typeof opt === 'object' && opt !== null && 'value' in opt) ? opt.value : opt;
+  
+  const getOptionLabel = (opt: string | number | FilterOption) => 
+    (typeof opt === 'object' && opt !== null && 'name' in opt) ? opt.name : opt;
+
+  const allValues = options.map(getOptionValue);
+  const isAllSelected = options.length > 0 && selected.length === options.length;
+
+  const handleSelectAll = () => {
+    if (onSelectAll) {
+      if (isAllSelected) {
+        onSelectAll([]);
+      } else {
+        onSelectAll(allValues as (string | number)[]);
+      }
+    }
   };
 
-  const clearAllFilters = () => {
-    onFilterChange({
-      clusters: [],
-      accounts: [],
-      analyzeBy: [],
-      years: [],
-      months: [],
-      marginThreshold: 30,
-    });
-  };
-
-  const activeFilterCount = 
-    filters.clusters.length + 
-    filters.accounts.length + 
-    filters.analyzeBy.length + 
-    filters.years.length + 
-    filters.months.length;
-
-  const MultiSelectDropdown = ({
-    label,
-    options,
-    selected,
-    onToggle,
-    type,
-  }: {
-    label: string;
-    options: (string | number)[];
-    selected: (string | number)[];
-    onToggle: (value: string | number) => void;
-    type: string;
-  }) => (
+  return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           className="w-full justify-between h-10 font-normal"
+          disabled={disabled}
         >
           <span className="truncate">
             {selected.length === 0
@@ -88,22 +84,84 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <div className="max-h-60 overflow-y-auto p-2 space-y-1">
-          {options.map((option) => (
-            <label
-              key={String(option)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
-            >
+          {onSelectAll && options.length > 0 && (
+            <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer font-medium border-b mb-1">
               <Checkbox
-                checked={selected.includes(option)}
-                onCheckedChange={() => onToggle(option)}
+                checked={isAllSelected}
+                onCheckedChange={handleSelectAll}
               />
-              <span className="text-sm">{option}</span>
+              <span className="text-sm">Select All</span>
             </label>
-          ))}
+          )}
+          {options.map((option) => {
+            const value = getOptionValue(option);
+            const labelText = getOptionLabel(option);
+            return (
+              <label
+                key={String(value)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+              >
+                <Checkbox
+                  checked={selected.includes(value as never)}
+                  onCheckedChange={() => onToggle(value as string | number)}
+                />
+                <span className="text-sm">{labelText}</span>
+              </label>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>
   );
+};
+
+const FilterPanel: React.FC<FilterPanelProps> = ({ 
+  filters, 
+  onFilterChange,
+  availableClusters = [],
+  availableAccounts = [],
+  availableProjects = [],
+  availableYears = [],
+  availableMonths = []
+}) => {
+
+  const toggleArrayFilter = (
+    key: 'clusters' | 'accounts' | 'projects' | 'analyzeBy' | 'years' | 'months',
+    value: string | number
+  ) => {
+    const currentArray = filters[key] as (string | number)[];
+    const newArray = currentArray.includes(value)
+      ? currentArray.filter((item) => item !== value)
+      : [...currentArray, value];
+    onFilterChange({ ...filters, [key]: newArray });
+  };
+
+  const setArrayFilter = (
+    key: 'clusters' | 'accounts' | 'projects' | 'analyzeBy' | 'years' | 'months',
+    values: (string | number)[]
+  ) => {
+    onFilterChange({ ...filters, [key]: values });
+  };
+
+  const clearAllFilters = () => {
+    onFilterChange({
+      clusters: [],
+      accounts: [],
+      projects: [],
+      analyzeBy: [],
+      years: [],
+      months: [],
+      marginThreshold: 30,
+    });
+  };
+
+  const activeFilterCount = 
+    (filters.clusters?.length || 0) + 
+    (filters.accounts?.length || 0) + 
+    (filters.projects?.length || 0) +
+    (filters.analyzeBy?.length || 0) + 
+    (filters.years?.length || 0) + 
+    (filters.months?.length || 0);
 
   return (
     <div className="bg-card border rounded-xl p-4 space-y-4">
@@ -137,10 +195,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
           </Label>
           <MultiSelectDropdown
             label="Clusters"
-            options={clusterNames}
-            selected={filters.clusters}
+            options={availableClusters}
+            selected={filters.clusters || []}
             onToggle={(val) => toggleArrayFilter('clusters', val)}
-            type="clusters"
+            onSelectAll={(vals) => setArrayFilter('clusters', vals)}
+            disabled={false}
           />
         </div>
 
@@ -150,10 +209,25 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
           </Label>
           <MultiSelectDropdown
             label="Accounts"
-            options={accountNames}
-            selected={filters.accounts}
+            options={availableAccounts}
+            selected={filters.accounts || []}
             onToggle={(val) => toggleArrayFilter('accounts', val)}
-            type="accounts"
+            onSelectAll={(vals) => setArrayFilter('accounts', vals)}
+            disabled={!filters.clusters?.length}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Project
+          </Label>
+          <MultiSelectDropdown
+            label="Projects"
+            options={availableProjects}
+            selected={filters.projects || []}
+            onToggle={(val) => toggleArrayFilter('projects', val)}
+            onSelectAll={(vals) => setArrayFilter('projects', vals)}
+            disabled={!filters.accounts?.length}
           />
         </div>
 
@@ -164,9 +238,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
           <MultiSelectDropdown
             label="KPIs"
             options={KPI_OPTIONS}
-            selected={filters.analyzeBy}
+            selected={filters.analyzeBy || []}
             onToggle={(val) => toggleArrayFilter('analyzeBy', val)}
-            type="kpis"
+            onSelectAll={(vals) => setArrayFilter('analyzeBy', vals)}
+            disabled={!filters.projects?.length}
           />
         </div>
 
@@ -176,10 +251,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
           </Label>
           <MultiSelectDropdown
             label="Years"
-            options={years}
-            selected={filters.years}
+            options={availableYears}
+            selected={filters.years || []}
             onToggle={(val) => toggleArrayFilter('years', val)}
-            type="years"
+            onSelectAll={(vals) => setArrayFilter('years', vals)}
+            disabled={!filters.analyzeBy?.length}
           />
         </div>
 
@@ -189,10 +265,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
           </Label>
           <MultiSelectDropdown
             label="Months"
-            options={MONTHS}
-            selected={filters.months}
+            options={availableMonths}
+            selected={filters.months || []}
             onToggle={(val) => toggleArrayFilter('months', val)}
-            type="months"
+            onSelectAll={(vals) => setArrayFilter('months', vals)}
+            disabled={!filters.analyzeBy?.length}
           />
         </div>
 

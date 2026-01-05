@@ -54,7 +54,9 @@ const Settings: React.FC = () => {
               <div className="flex items-center gap-6">
                 <Avatar className="h-20 w-20">
                   <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-medium">
-                    {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                    {user?.name 
+                      ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                      : (user?.email?.substring(0, 2).toUpperCase() || 'U')}
                   </AvatarFallback>
                 </Avatar>
                 <div>

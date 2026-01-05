@@ -119,13 +119,15 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
         )}>
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-medium">
-              {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+              {user?.name 
+                ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                : (user?.email?.substring(0, 2).toUpperCase() || 'U')}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {user?.name}
+                {user?.name || user?.email}
               </p>
               <p className="text-xs text-sidebar-foreground/60 truncate">
                 {user?.role ? ROLE_LABELS[user.role] : ''}
