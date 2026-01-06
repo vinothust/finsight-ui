@@ -53,7 +53,7 @@ export interface FilterState {
   analyzeBy: string[];
   years: number[];
   months: string[];
-  marginThreshold: number;
+  marginRange: [number, number];
 }
 
 export interface ChatMessage {

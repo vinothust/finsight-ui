@@ -1,10 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, X, Minimize2, Maximize2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Send, Bot, User, Sparkles, X } from 'lucide-react';
 import { ChatMessage } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { aiService } from '@/services/aiService';
+import ReactMarkdown from 'react-markdown';
+
+export interface AIChatBotRef {
+  sendMessage: (message: string) => void;
+}
 
 interface AIChatBotProps {
   isOpen: boolean;
@@ -19,7 +25,7 @@ const sampleResponses = [
   "Revenue forecasting based on historical data suggests a potential 12% increase in Q1 2025, with the strongest growth expected in the Asia Pacific cluster.",
 ];
 
-const AIChatBot: React.FC<AIChatBotProps> = ({ isOpen, onClose }) => {
+const AIChatBot = forwardRef<AIChatBotRef, AIChatBotProps>(({ isOpen, onClose }, ref) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -30,7 +36,6 @@ const AIChatBot: React.FC<AIChatBotProps> = ({ isOpen, onClose }) => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,38 +46,66 @@ const AIChatBot: React.FC<AIChatBotProps> = ({ isOpen, onClose }) => {
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && !isMinimized && inputRef.current) {
-      inputRef.current.focus();
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 300); // Wait for animation
     }
-  }, [isOpen, isMinimized]);
+  }, [isOpen]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (messageText?: string) => {
+    const textToSend = messageText || input;
+    if (!textToSend.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: textToSend.trim(),
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    
+    // Only clear input if we used the input state
+    if (!messageText) {
+        setInput('');
+    }
+    
     setIsLoading(true);
 
-    // Simulate AI response
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
-
-    const aiResponse: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: sampleResponses[Math.floor(Math.random() * sampleResponses.length)],
-      timestamp: new Date(),
+    const aiMessageId = (Date.now() + 1).toString();
+    const aiMessage: ChatMessage = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
     };
+    
+    setMessages((prev) => [...prev, aiMessage]);
 
-    setMessages((prev) => [...prev, aiResponse]);
-    setIsLoading(false);
+    try {
+      await aiService.sendMessageStream(userMessage.content, (chunk) => {
+        setMessages((prev) => 
+            prev.map(msg => 
+                msg.id === aiMessageId 
+                    ? { ...msg, content: msg.content + chunk }
+                    : msg
+            )
+        );
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useImperativeHandle(ref, () => ({
+    sendMessage: (message: string) => {
+      // Small delay to ensure state updates if it was just opened
+      setTimeout(() => handleSend(message), 100);
+    }
+  }));
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -87,143 +120,176 @@ const AIChatBot: React.FC<AIChatBotProps> = ({ isOpen, onClose }) => {
     "Show top performing projects",
   ];
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className={cn(
-        'fixed right-6 bottom-6 bg-card border rounded-2xl shadow-2xl z-50 flex flex-col transition-all duration-300',
-        isMinimized ? 'w-72 h-14' : 'w-96 h-[500px]'
+    <>
+      {/* Backdrop for mobile or focus */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+          onClick={onClose}
+        />
       )}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground rounded-t-2xl">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-primary-foreground/20 rounded-lg">
-            <Sparkles size={18} />
-          </div>
-          <div>
-            <h3 className="font-semibold font-display text-sm">FinSight AI</h3>
-            {!isMinimized && (
+      
+      <div
+        className={cn(
+          'fixed top-0 right-0 h-full w-[450px] bg-background border-l shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out',
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-primary-foreground/20 rounded-lg">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <h3 className="font-semibold font-display text-base">FinSight AI</h3>
               <p className="text-xs text-primary-foreground/70">Ask anything about your data</p>
-            )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={onClose}
+            >
+              <X size={18} />
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={() => setIsMinimized(!isMinimized)}
-          >
-            {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
-            onClick={onClose}
-          >
-            <X size={16} />
-          </Button>
-        </div>
-      </div>
 
-      {!isMinimized && (
-        <>
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.map((message) => (
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <div className="space-y-6">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  'flex gap-3 animate-fade-in',
+                  message.role === 'user' ? 'flex-row-reverse' : ''
+                )}
+              >
                 <div
-                  key={message.id}
                   className={cn(
-                    'flex gap-3 animate-fade-in',
-                    message.role === 'user' ? 'flex-row-reverse' : ''
+                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                    message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted border border-border'
                   )}
                 >
-                  <div
-                    className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                      message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-accent'
-                    )}
-                  >
-                    {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                  </div>
-                  <div
-                    className={cn(
-                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm',
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                        : 'bg-muted rounded-tl-sm'
-                    )}
-                  >
-                    {message.content}
-                  </div>
+                  {message.role === 'user' ? <User size={16} /> : <Bot size={16} className="text-foreground" />}
                 </div>
-              ))}
-
-              {isLoading && (
-                <div className="flex gap-3 animate-fade-in">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-accent shrink-0">
-                    <Bot size={16} />
-                  </div>
-                  <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
+                <div
+                  className={cn(
+                    'max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm',
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                      : 'bg-card border text-card-foreground rounded-tl-sm'
+                  )}
+                >
+                    <ReactMarkdown
+                      components={{
+                        p: ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                        ul: ({children}) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                        ol: ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+                        li: ({children}) => <li className="mb-1">{children}</li>,
+                        strong: ({children}) => <span className="font-bold">{children}</span>,
+                        em: ({children}) => <span className="italic">{children}</span>,
+                        pre: ({children}) => (
+                          <pre className={cn(
+                            "rounded-lg p-3 my-2 overflow-x-auto",
+                            message.role === 'user' 
+                              ? "bg-black/20 text-white" 
+                              : "bg-muted text-foreground"
+                          )}>
+                            {children}
+                          </pre>
+                        ),
+                        code: ({children}) => (
+                          <code className={cn(
+                            "px-1.5 py-0.5 rounded text-xs font-mono",
+                            // Only apply background if not inside pre (simple heuristic or just apply mild style)
+                            // For simplicity, we'll apply a robust style that works for inline.
+                            // Blocks are usually handled by 'pre', and 'code' inside 'pre' inherits.
+                            message.role === 'user' 
+                              ? "bg-black/10" 
+                              : "bg-muted"
+                          )}>
+                            {children}
+                          </code>
+                        )
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                 </div>
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Quick Questions */}
-          {messages.length <= 2 && (
-            <div className="px-4 pb-2">
-              <p className="text-xs text-muted-foreground mb-2">Quick questions:</p>
-              <div className="flex flex-wrap gap-2">
-                {quickQuestions.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => setInput(q)}
-                    className="text-xs px-3 py-1.5 bg-accent hover:bg-accent/80 rounded-full transition-colors"
-                  >
-                    {q}
-                  </button>
-                ))}
               </div>
-            </div>
-          )}
+            ))}
 
-          {/* Input */}
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask about your P&L data..."
-                className="flex-1"
-                disabled={isLoading}
-              />
-              <Button
-                size="icon"
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                variant="gradient"
-              >
-                <Send size={18} />
-              </Button>
+            {isLoading && (
+              <div className="flex gap-3 animate-fade-in">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted border border-border shrink-0">
+                  <Bot size={16} className="text-foreground" />
+                </div>
+                <div className="bg-card border rounded-2xl rounded-tl-sm px-4 py-4 shadow-sm">
+                  <div className="flex gap-1.5">
+                    <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Quick Questions */}
+        {messages.length <= 2 && (
+          <div className="px-4 pb-2">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">Suggested questions:</p>
+            <div className="flex flex-wrap gap-2">
+              {quickQuestions.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => setInput(q)}
+                  className="text-xs px-3 py-2 bg-muted hover:bg-muted/80 text-foreground border rounded-lg transition-colors text-left"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
-        </>
-      )}
-    </div>
+        )}
+
+        {/* Input */}
+        <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex gap-2">
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask a question..."
+              className="flex-1"
+              disabled={isLoading}
+            />
+            <Button
+              size="icon"
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isLoading}
+              className="shrink-0"
+            >
+              <Send size={18} />
+            </Button>
+          </div>
+          <div className="text-[10px] text-center text-muted-foreground mt-2">
+            AI can make mistakes. Please verify important information.
+          </div>
+        </div>
+      </div>
+    </>
   );
-};
+});
+
+AIChatBot.displayName = 'AIChatBot';
 
 export default AIChatBot;

@@ -4,7 +4,7 @@ import { FilterState, KPI_OPTIONS } from '@/types';
 import { FilterOption } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -17,6 +17,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ interface FilterPanelProps {
   availableClusters: FilterOption[];
   availableAccounts: FilterOption[];
   availableProjects: FilterOption[];
+  availableKPIs: string[];
   availableYears: number[];
   availableMonths: string[];
 }
@@ -121,9 +123,43 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   availableClusters = [],
   availableAccounts = [],
   availableProjects = [],
+  availableKPIs = [],
   availableYears = [],
   availableMonths = []
 }) => {
+  const [threshold, setThreshold] = React.useState("0");
+  const [mode, setMode] = React.useState<'greater' | 'lesser'>('greater');
+
+  React.useEffect(() => {
+    if (filters.marginRange) {
+        const [min, max] = filters.marginRange;
+        // Check if it looks like a "Lesser Than" filter (min is very low)
+        if (min <= -99 && max < 99) {
+            setMode('lesser');
+            setThreshold(max.toString());
+        } else {
+            // Default to "Greater Than"
+            setMode('greater');
+            setThreshold(min.toString());
+        }
+    }
+  }, [filters.marginRange]);
+
+  const commitMarginChange = (newMode: 'greater' | 'lesser', val: string) => {
+     let value = parseFloat(val);
+     if (isNaN(value)) value = 0;
+     
+     let range: [number, number];
+     if (newMode === 'greater') {
+         // Greater than X implies [X, Large Number]
+         range = [value, 100];
+     } else {
+         // Lesser than X implies [Small Number, X]
+         range = [-100, value];
+     }
+     
+     onFilterChange({ ...filters, marginRange: range });
+  };
 
   const toggleArrayFilter = (
     key: 'clusters' | 'accounts' | 'projects' | 'analyzeBy' | 'years' | 'months',
@@ -151,7 +187,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       analyzeBy: [],
       years: [],
       months: [],
-      marginThreshold: 30,
+      marginRange: [30, 100],
     });
   };
 
@@ -237,7 +273,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           </Label>
           <MultiSelectDropdown
             label="KPIs"
-            options={KPI_OPTIONS}
+            options={availableKPIs.length > 0 ? availableKPIs : KPI_OPTIONS}
             selected={filters.analyzeBy || []}
             onToggle={(val) => toggleArrayFilter('analyzeBy', val)}
             onSelectAll={(vals) => setArrayFilter('analyzeBy', vals)}
@@ -275,23 +311,38 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
         <div className="space-y-2">
           <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Margin Threshold
+            Margin Threshold (%)
           </Label>
-          <div className="pt-2">
-            <Slider
-              value={[filters.marginThreshold]}
-              onValueChange={([value]) =>
-                onFilterChange({ ...filters, marginThreshold: value })
-              }
-              max={100}
-              step={5}
-              className="w-full"
+          <div className="flex flex-col gap-2 pt-1">
+             <ToggleGroup 
+                type="single" 
+                value={mode} 
+                onValueChange={(val) => {
+                    if (val) {
+                        const newMode = val as 'greater' | 'lesser';
+                        setMode(newMode);
+                        commitMarginChange(newMode, threshold);
+                    }
+                }}
+                className="justify-start w-full border rounded-md p-1 h-9"
+            >
+                <ToggleGroupItem value="greater" className="flex-1 h-7 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Greater {'>'}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="lesser" className="flex-1 h-7 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                    Lesser {'<'}
+                </ToggleGroupItem>
+            </ToggleGroup>
+            
+            <Input 
+                 type="number"
+                 placeholder="30"
+                 value={threshold}
+                 onChange={(e) => setThreshold(e.target.value)}
+                 onBlur={() => commitMarginChange(mode, threshold)}
+                 onKeyDown={(e) => e.key === 'Enter' && commitMarginChange(mode, threshold)}
+                 className="h-8"
             />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>0%</span>
-              <span className="font-medium text-primary">{filters.marginThreshold}%</span>
-              <span>100%</span>
-            </div>
           </div>
         </div>
       </div>
@@ -299,28 +350,48 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       {/* Active Filters Display */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2 pt-2 border-t">
-          {filters.clusters.map((cluster) => (
-            <Badge
-              key={cluster}
-              variant="secondary"
-              className="cursor-pointer hover:bg-destructive/10"
-              onClick={() => toggleArrayFilter('clusters', cluster)}
-            >
-              {cluster}
-              <X size={12} className="ml-1" />
-            </Badge>
-          ))}
-          {filters.accounts.map((account) => (
-            <Badge
-              key={account}
-              variant="secondary"
-              className="cursor-pointer hover:bg-destructive/10"
-              onClick={() => toggleArrayFilter('accounts', account)}
-            >
-              {account}
-              <X size={12} className="ml-1" />
-            </Badge>
-          ))}
+          {filters.clusters.map((clusterId) => {
+            const cluster = availableClusters.find(c => String(c.value) === String(clusterId) || String(c.id) === String(clusterId));
+            return (
+              <Badge
+                key={clusterId}
+                variant="secondary"
+                className="cursor-pointer hover:bg-destructive/10"
+                onClick={() => toggleArrayFilter('clusters', clusterId)}
+              >
+                {cluster?.name || clusterId}
+                <X size={12} className="ml-1" />
+              </Badge>
+            );
+          })}
+          {filters.accounts.map((accountId) => {
+            const account = availableAccounts.find(a => String(a.value) === String(accountId) || String(a.id) === String(accountId));
+            return (
+              <Badge
+                key={accountId}
+                variant="secondary"
+                className="cursor-pointer hover:bg-destructive/10"
+                onClick={() => toggleArrayFilter('accounts', accountId)}
+              >
+                {account?.name || accountId}
+                <X size={12} className="ml-1" />
+              </Badge>
+            );
+          })}
+          {filters.projects.map((projectId) => {
+            const project = availableProjects.find(p => String(p.value) === String(projectId) || String(p.id) === String(projectId));
+            return (
+              <Badge
+                key={projectId}
+                variant="secondary"
+                className="cursor-pointer hover:bg-destructive/10"
+                onClick={() => toggleArrayFilter('projects', projectId)}
+              >
+                {project?.name || projectId}
+                <X size={12} className="ml-1" />
+              </Badge>
+            );
+          })}
           {filters.years.map((year) => (
             <Badge
               key={year}
@@ -329,6 +400,17 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               onClick={() => toggleArrayFilter('years', year)}
             >
               {year}
+              <X size={12} className="ml-1" />
+            </Badge>
+          ))}
+          {filters.months.map((month) => (
+            <Badge
+              key={month}
+              variant="secondary"
+              className="cursor-pointer hover:bg-destructive/10"
+              onClick={() => toggleArrayFilter('months', month)}
+            >
+              {month}
               <X size={12} className="ml-1" />
             </Badge>
           ))}

@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Upload, label: 'Upload Data', path: '/upload' },
-    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+    // { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   ];
 
   const adminItems = [

@@ -12,6 +12,7 @@ import Settings from "./pages/Settings";
 import Clusters from "./pages/Clusters";
 import Accounts from "./pages/Accounts";
 import Projects from "./pages/Projects";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,14 +56,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      <Route
+      {/* <Route
         path="/analytics"
         element={
           <ProtectedRoute>
             <Analytics />
           </ProtectedRoute>
         }
-      />
+      /> */}
       <Route
         path="/settings"
         element={
@@ -75,7 +76,7 @@ const AppRoutes = () => {
         path="/users"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Users />
           </ProtectedRoute>
         }
       />

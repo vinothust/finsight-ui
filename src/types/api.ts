@@ -44,6 +44,8 @@ export interface KPISummary {
   margin: number;
   headcount: number;
   utilization: number;
+  revenuePerHead: number;
+  costPerHead: number;
 }
 
 export interface TrendData {
@@ -80,4 +82,49 @@ export interface Project {
   name: string;
   accountId: string | number;
   [key: string]: any;
+}
+
+export interface HierarchicalResource {
+  employeeId: string;
+  employeeName: string;
+  role: string;
+  revenue: number;
+  cost: number;
+  grossProfit: number;
+  margin: number;
+  hours?: number;
+}
+
+export interface HierarchicalProject {
+  projectId: string;
+  projectName: string;
+  revenue: number;
+  cost: number;
+  grossProfit: number;
+  margin: number;
+  headcount: number;
+  utilization: number;
+  resources?: HierarchicalResource[];
+}
+
+export interface HierarchicalAccount {
+  accountId: string;
+  accountName: string;
+  revenue: number;
+  cost: number;
+  grossProfit: number;
+  margin: number;
+  projectCount?: number;
+  projects?: HierarchicalProject[];
+}
+
+export interface HierarchicalCluster {
+  clusterId: string;
+  clusterName: string;
+  revenue: number;
+  cost: number;
+  grossProfit: number;
+  margin: number;
+  accountCount: number;
+  accounts?: HierarchicalAccount[];
 }

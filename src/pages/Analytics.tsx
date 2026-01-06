@@ -3,9 +3,10 @@ import Sidebar from '@/components/Sidebar';
 import FilterPanel from '@/components/FilterPanel';
 import DataCharts from '@/components/DataCharts';
 import KPICards from '@/components/KPICards';
-import { FilterState, MONTHS } from '@/types';
-import { FilterOption } from '@/types/api';
+import { PnLData, FilterState, MONTHS } from '@/types';
+import { FilterOption, KPISummary } from '@/types/api';
 import { filterService } from '@/services/filterService';
+import { pnlService } from '@/services/pnlService';
 import { mockPnLData, getYearRange } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,8 @@ const Analytics: React.FC = () => {
   const [availableProjects, setAvailableProjects] = useState<FilterOption[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>(getYearRange());
   const [availableMonths, setAvailableMonths] = useState<string[]>(MONTHS);
+  const [pnlData, setPnlData] = useState<PnLData[]>([]);
+  const [kpiSummary, setKpiSummary] = useState<KPISummary | undefined>(undefined);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -95,6 +98,23 @@ const Analytics: React.FC = () => {
     fetchProjects();
   }, [filters.accounts, availableAccounts, filters.clusters]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [pnlResponse, kpiResponse] = await Promise.all([
+          pnlService.getPnLData(filters),
+          pnlService.getKPISummary(filters)
+        ]);
+        
+        setPnlData(pnlResponse.data as unknown as PnLData[]);
+        setKpiSummary(kpiResponse);
+      } catch (error) {
+        console.error("Failed to fetch analytics data", error);
+      }
+    };
+    fetchData();
+  }, [filters]);
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -115,7 +135,7 @@ const Analytics: React.FC = () => {
         </header>
 
         <div className="p-6 space-y-6">
-          <KPICards data={mockPnLData} filters={filters} />
+          <KPICards data={pnlData} filters={filters} summary={kpiSummary} />
           <FilterPanel 
             filters={filters} 
             onFilterChange={setFilters}
@@ -125,7 +145,7 @@ const Analytics: React.FC = () => {
             availableYears={availableYears}
             availableMonths={availableMonths}
           />
-          <DataCharts data={mockPnLData} filters={filters} />
+          <DataCharts data={pnlData} filters={filters} />
         </div>
       </main>
     </div>

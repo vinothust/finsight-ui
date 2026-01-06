@@ -17,11 +17,14 @@ import {
   Area,
 } from 'recharts';
 import { PnLData, FilterState, MONTHS } from '@/types';
+import { FilterOption } from '@/types/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface DataChartsProps {
   data: PnLData[];
   filters: FilterState;
+  clusters?: FilterOption[];
+  accounts?: FilterOption[];
 }
 
 const CHART_COLORS = [
@@ -33,7 +36,10 @@ const CHART_COLORS = [
   'hsl(142, 76%, 36%)',
 ];
 
-const DataCharts: React.FC<DataChartsProps> = ({ data, filters }) => {
+const DataCharts: React.FC<DataChartsProps> = ({ data, filters, clusters = [], accounts = [] }) => {
+  const getClusterName = (id: string) => clusters.find(c => String(c.id) === String(id) || String(c.value) === String(id))?.name || id;
+  const getAccountName = (id: string) => accounts.find(a => String(a.id) === String(id) || String(a.value) === String(id))?.name || id;
+
   const filteredData = useMemo(() => {
     return data.filter((row) => {
       if (filters.clusters.length && !filters.clusters.includes(row.cluster)) return false;
@@ -70,24 +76,26 @@ const DataCharts: React.FC<DataChartsProps> = ({ data, filters }) => {
     const grouped: Record<string, number> = {};
     
     filteredData.forEach((row) => {
-      grouped[row.cluster] = (grouped[row.cluster] || 0) + row.revenue;
+      const name = getClusterName(row.cluster);
+      grouped[name] = (grouped[name] || 0) + row.revenue;
     });
 
     return Object.entries(grouped)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [filteredData]);
+  }, [filteredData, clusters]);
 
   // Margin by Account
   const marginByAccount = useMemo(() => {
     const grouped: Record<string, { revenue: number; profit: number }> = {};
     
     filteredData.forEach((row) => {
-      if (!grouped[row.account]) {
-        grouped[row.account] = { revenue: 0, profit: 0 };
+      const name = getAccountName(row.account);
+      if (!grouped[name]) {
+        grouped[name] = { revenue: 0, profit: 0 };
       }
-      grouped[row.account].revenue += row.revenue;
-      grouped[row.account].profit += row.grossProfit;
+      grouped[name].revenue += row.revenue;
+      grouped[name].profit += row.grossProfit;
     });
 
     return Object.entries(grouped)
@@ -97,7 +105,7 @@ const DataCharts: React.FC<DataChartsProps> = ({ data, filters }) => {
       }))
       .sort((a, b) => b.margin - a.margin)
       .slice(0, 10);
-  }, [filteredData]);
+  }, [filteredData, accounts]);
 
   // Utilization trend
   const utilizationTrend = useMemo(() => {

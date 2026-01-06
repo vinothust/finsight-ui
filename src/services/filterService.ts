@@ -18,4 +18,9 @@ export const filterService = {
     const response = await api.get<{ options: FilterOption[] }>('/filters/options/projects', { params });
     return response.data.options;
   },
+
+  getKPIs: async (): Promise<string[]> => {
+    const response = await api.get<{ options: string[] }>('/filters/options/kpis');
+    return response.data.options;
+  },
 };
